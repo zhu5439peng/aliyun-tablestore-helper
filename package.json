@@ -8,6 +8,7 @@
   "author": "zhu5439peng",
   "license": "MIT",
   "dependencies": {
-    "lodash": "^4.17.10"
+    "lodash": "^4.17.10",
+    "tablestore": "^4.0.11",
   }
 }
