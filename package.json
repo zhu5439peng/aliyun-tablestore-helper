@@ -1,14 +1,28 @@
 {
   "name": "aliyun-tablestore-helper",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.4",
   "main": "index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "tablestore"
+  ],
   "author": "zhu5439peng",
-  "license": "MIT",
+  "license": "ISC",
   "dependencies": {
     "lodash": "^4.17.10",
     "tablestore": "^4.0.11",
-  }
+    "yamljs": "^0.3.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhu5439peng/aliyun-tablestore-helper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhu5439peng/aliyun-tablestore-helper/issues"
+  },
+  "homepage": "https://github.com/zhu5439peng/aliyun-tablestore-helper#readme",
+  "description": ""
 }

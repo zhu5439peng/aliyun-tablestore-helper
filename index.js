@@ -4,13 +4,10 @@ const _=require('lodash');
 const TableStore = require("tablestore");
 const Long = TableStore.Long;
 
-const config = {
-	accessKeyId: 'xxxxxxx',
-	secretAccessKey: 'xxxxxxxxxxxxxx',
-	endpoint: 'xxxxxxxx',
-	instancename:'xxxxxxxx',
-	maxRetries:20,//默认20次重试，可以省略这个参数。
-};
+var YAML = require('yamljs');
+
+// Load yaml file using YAML.load
+var config = YAML.load('ath.yaml');
 
 const client=new TableStore.Client(config);
 exports.client=client;
@@ -55,7 +52,7 @@ TSCreate.prototype={
 		//先删除，后创建
 		client.deleteTable({tableName: tableName},()=>{
 			this.create(tableName,pk,handler);
-		})
+	})
 	}
 }
 
@@ -71,47 +68,47 @@ TSGet.prototype={
 		return this;
 	},
 	get:function(...primary){
-		if(!this._currentRow){
-			this._currentRow={primaryKey:[]};
-		}
-		this._currentRow.primaryKey.push([...primary]);
-		return this;
-	},
-	attr:function(...columns){
-		var condition = new TableStore.CompositeCondition(TableStore.LogicalOperator.AND);
-		_.each(columns,function(item,index){
-			_.each(item,function(value,key){
-				condition.addSubCondition(new TableStore.SingleColumnCondition(key, item[key], TableStore.ComparatorType.EQUAL));
-			})
-		})
-		this._currentRow.columnFilter = condition;
-		return this;
-	},
-	exec:function(handler){
-		this._handler=handler;
-		
-		this._end();
-		let tb=this.tables;
-		this.tables=[];
-
-		client.batchGetRow({tables:tb},this._handler);
-	},
-	trace:function(){
-		this._end();
-		let tb=this.tables;
-		this.tables=[];
-		return {tables:tb};
-	},
-	_endRow:function(){
-		_.assign(this._currentTable,this._currentRow);
-		this._currentRow=null;
-	},
-	_end:function(){
-		this._endRow();
-		
-		if(this._currentTable)this.tables.push(this._currentTable);
-		this._currentTable=null;
+	if(!this._currentRow){
+		this._currentRow={primaryKey:[]};
 	}
+	this._currentRow.primaryKey.push([...primary]);
+	return this;
+},
+attr:function(...columns){
+	var condition = new TableStore.CompositeCondition(TableStore.LogicalOperator.AND);
+	_.each(columns,function(item,index){
+		_.each(item,function(value,key){
+			condition.addSubCondition(new TableStore.SingleColumnCondition(key, item[key], TableStore.ComparatorType.EQUAL));
+		})
+	})
+	this._currentRow.columnFilter = condition;
+	return this;
+},
+exec:function(handler){
+	this._handler=handler;
+	
+	this._end();
+	let tb=this.tables;
+	this.tables=[];
+	
+	client.batchGetRow({tables:tb},this._handler);
+},
+trace:function(){
+	this._end();
+	let tb=this.tables;
+	this.tables=[];
+	return {tables:tb};
+},
+_endRow:function(){
+	_.assign(this._currentTable,this._currentRow);
+	this._currentRow=null;
+},
+_end:function(){
+	this._endRow();
+	
+	if(this._currentTable)this.tables.push(this._currentTable);
+	this._currentTable=null;
+}
 }
 
 TSSet.prototype = {
@@ -127,67 +124,67 @@ TSSet.prototype = {
 		return this;
 	},
 	put:function (...primary) {
-		this._endRow();
-		this._currentRow={
-			type: 'PUT',
-			condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
-			primaryKey: [...primary],
-			attributeColumns: [],
-			returnContent: { returnType: TableStore.ReturnType.Primarykey }
-		}
-		return this;
-	},
-	update:function(...primary){
-		this._endRow();
-		this._currentRow={
-			type: 'UPDATE',
-			condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
-			primaryKey: [...primary],
-			attributeColumns: [],
-			returnContent: { returnType: TableStore.ReturnType.Primarykey }
-		}
-		return this;
-	},
-	attr:function(...columns){
-		var condition=_.reduce(columns,function (prev,item,index) {
-			return _.concat(prev,_.map(item,function (value, key) {
-				return _.pick(item,[key]);
-			}));
-		},[]);
-		
-		if(this._currentRow.type=='PUT'){
-			this._currentRow.attributeColumns=condition;
-		}else{
-			this._currentRow.attributeColumns=[{"PUT":condition}];
-		}
-		return this;
-	},
-	exec:function(handler){
-		this._handler=handler;
-		
-		this._end();
-		let tb=this.tables;
-		this.tables=[];
-		client.batchWriteRow({tables:tb}, this._handler);
-	},
-	trace:function(){
-		this._end();
-		let tb=this.tables;
-		this.tables=[];
-		return {tables:tb};
-	},
-	_endRow:function(){
-		if(this._currentRow){
-			this._currentTable.rows.push(this._currentRow);
-			this._currentRow=null;
-		}
-	},
-	_end:function(){
-		this._endRow();
-		
-		if(this._currentTable)this.tables.push(this._currentTable);
-		this._currentTable=null;
+	this._endRow();
+	this._currentRow={
+		type: 'PUT',
+		condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
+		primaryKey: [...primary],
+	attributeColumns: [],
+		returnContent: { returnType: TableStore.ReturnType.Primarykey }
+}
+	return this;
+},
+update:function(...primary){
+	this._endRow();
+	this._currentRow={
+		type: 'UPDATE',
+		condition: new TableStore.Condition(TableStore.RowExistenceExpectation.IGNORE, null),
+		primaryKey: [...primary],
+	attributeColumns: [],
+		returnContent: { returnType: TableStore.ReturnType.Primarykey }
+}
+	return this;
+},
+attr:function(...columns){
+	var condition=_.reduce(columns,function (prev,item,index) {
+		return _.concat(prev,_.map(item,function (value, key) {
+			return _.pick(item,[key]);
+		}));
+	},[]);
+	
+	if(this._currentRow.type=='PUT'){
+		this._currentRow.attributeColumns=condition;
+	}else{
+		this._currentRow.attributeColumns=[{"PUT":condition}];
 	}
+	return this;
+},
+exec:function(handler){
+	this._handler=handler;
+	
+	this._end();
+	let tb=this.tables;
+	this.tables=[];
+	client.batchWriteRow({tables:tb}, this._handler);
+},
+trace:function(){
+	this._end();
+	let tb=this.tables;
+	this.tables=[];
+	return {tables:tb};
+},
+_endRow:function(){
+	if(this._currentRow){
+		this._currentTable.rows.push(this._currentRow);
+		this._currentRow=null;
+	}
+},
+_end:function(){
+	this._endRow();
+	
+	if(this._currentTable)this.tables.push(this._currentTable);
+	this._currentTable=null;
+}
 }
 
 TSRange.prototype={
@@ -204,49 +201,49 @@ TSRange.prototype={
 		return this;
 	},
 	range:function(...primary){
-		this._params.inclusiveStartPrimaryKey=_.reduce(primary,function(prev,value,index){
-			let obj={};
-			obj[value]=TableStore.INF_MIN;
-			prev.push(obj);
-			return prev;
-		},[]);
-		this._params.exclusiveEndPrimaryKey=_.reduce(primary,function(prev,value,index){
-			let obj={};
-			obj[value]=TableStore.INF_MAX;
-			prev.push(obj);
-			return prev;
-		},[]);
-		
-		return this;
-	},
-	equal(condition,operator="and"){
-		if(_.isEmpty(condition))return this;
-		let size=_.size(condition);
-		if(size==1){
-			condition=_.toPairs(condition);
-			this._params.columnFilter=new TableStore.SingleColumnCondition(condition[0][0],condition[0][1], TableStore.ComparatorType.EQUAL);
-			return this;
-		}
-		
-		let lop;
-		if(operator=="and")lop=TableStore.LogicalOperator.AND;
-		else if(operator=="or")lop=TableStore.LogicalOperator.OR
-		else lop=TableStore.LogicalOperator.NOT;
+	this._params.inclusiveStartPrimaryKey=_.reduce(primary,function(prev,value,index){
+		let obj={};
+		obj[value]=TableStore.INF_MIN;
+		prev.push(obj);
+		return prev;
+	},[]);
+	this._params.exclusiveEndPrimaryKey=_.reduce(primary,function(prev,value,index){
+		let obj={};
+		obj[value]=TableStore.INF_MAX;
+		prev.push(obj);
+		return prev;
+	},[]);
 	
-		var cond= new TableStore.CompositeCondition(lop);
-		
-		_.each(condition,function(value,index){
-			cond.addSubCondition(new TableStore.SingleColumnCondition(index,value, TableStore.ComparatorType.EQUAL));
-		})
-		this._params.columnFilter = cond;
+	return this;
+},
+equal(condition,operator="and"){
+	if(_.isEmpty(condition))return this;
+	let size=_.size(condition);
+	if(size==1){
+		condition=_.toPairs(condition);
+		this._params.columnFilter=new TableStore.SingleColumnCondition(condition[0][0],condition[0][1], TableStore.ComparatorType.EQUAL);
 		return this;
-	},
-	trace(){
-		return this._params;
-	},
-	exec:function(handler){
-		client.getRange(this._params, handler);
 	}
+	
+	let lop;
+	if(operator=="and")lop=TableStore.LogicalOperator.AND;
+	else if(operator=="or")lop=TableStore.LogicalOperator.OR
+	else lop=TableStore.LogicalOperator.NOT;
+	
+	var cond= new TableStore.CompositeCondition(lop);
+	
+	_.each(condition,function(value,index){
+		cond.addSubCondition(new TableStore.SingleColumnCondition(index,value, TableStore.ComparatorType.EQUAL));
+	})
+	this._params.columnFilter = cond;
+	return this;
+},
+trace(){
+	return this._params;
+},
+exec:function(handler){
+	client.getRange(this._params, handler);
+}
 }
 
 TSHelper.prototype={
